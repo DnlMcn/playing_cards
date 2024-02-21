@@ -176,7 +176,6 @@ impl Hand {
     }
 
     fn analyze_hand(&self) {
-        let mut best_hand = PokerHand::None;
         let cards = self.cards.clone();
 
         // Check for Flush
@@ -212,8 +211,8 @@ impl Hand {
         }
 
         let mut sequential_cards = 1;
-        for mut current_highest in self.cards.iter() {
-            for next_card in self.cards.iter() {
+        for mut current_highest in cards.iter() {
+            for next_card in cards.iter() {
                 if sequential_cards == 5 {
                     break;
                 }
@@ -230,6 +229,8 @@ impl Hand {
                 }
             }
         }
+
+        let mut best_hand = PokerHand::None;
 
         if pairs == 1 {
             println!("This hand has a one pair");

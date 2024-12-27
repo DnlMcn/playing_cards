@@ -12,7 +12,7 @@ fn main() {
     }
 
     hand.cards
-        .sort_by(|a, b| a.rank.to_i32().cmp(&b.rank.to_i32()));
+        .sort_by(|a, b| a.rank.as_i32().cmp(&b.rank.as_i32()));
 
     hand.show();
     println!();
@@ -88,25 +88,52 @@ impl std::fmt::Display for Card {
     }
 }
 
-impl From<i32> for Rank {
-    fn from(n: i32) -> Self {
-        if let Some(rank) = Rank::iter().nth((n - 1) as usize) {
-            rank
-        } else {
-            eprintln!("integer could not be converted into a Rank! returning an Ace");
-            Rank::Ace
+impl TryFrom<i32> for Rank {
+    type Error = String;
+
+    fn try_from(value: i32) -> Result<Self, Self::Error> {
+        match value {
+            1 => Ok(Self::Ace),
+            2 => Ok(Self::Two),
+            3 => Ok(Self::Three),
+            4 => Ok(Self::Four),
+            5 => Ok(Self::Five),
+            6 => Ok(Self::Six),
+            7 => Ok(Self::Seven),
+            8 => Ok(Self::Eight),
+            9 => Ok(Self::Nine),
+            10 => Ok(Self::Ten),
+            11 => Ok(Self::Jack),
+            12 => Ok(Self::Queen),
+            13 => Ok(Self::King),
+            _ => Err(format!("Invalid rank value: {}", value))
+        }
+    }
+}
+
+impl From<Rank> for i32 {
+    fn from(val: Rank) -> Self {
+        match val {
+            Rank::Ace => 1,
+            Rank::Two => 2,
+            Rank::Three => 3,
+            Rank::Four => 4,
+            Rank::Five => 5,
+            Rank::Six => 6,
+            Rank::Seven => 7,
+            Rank::Eight => 8,
+            Rank::Nine => 9,
+            Rank::Ten => 10,
+            Rank::Jack => 11,
+            Rank::Queen => 12,
+            Rank::King => 13,
         }
     }
 }
 
 impl Rank {
-    fn to_i32(self) -> i32 {
-        if let Some(rank) = Rank::iter().position(|rank| rank == self) {
-            rank as i32 + 1
-        } else {
-            eprintln!("Rank could not be converted into an integer! returning 1.");
-            1
-        }
+    pub fn as_i32(self) -> i32 {
+        i32::from(self)
     }
 }
 
@@ -116,7 +143,7 @@ struct Deck {
 }
 
 impl Deck {
-    // Create a new deck with 52 cards
+    /// Create a new deck with 52 cards
     fn new() -> Deck {
         let mut deck = Deck { cards: Vec::new() };
 
@@ -129,13 +156,13 @@ impl Deck {
         deck
     }
 
-    // Shuffle the deck
+    /// Shuffle the deck
     fn shuffle(&mut self) {
         let mut rng = thread_rng();
         self.cards.shuffle(&mut rng);
     }
 
-    // Deal a card from the top of the deck
+    /// Deal a card from the top of the deck
     fn deal(&mut self) -> Option<Card> {
         self.cards.pop()
     }
@@ -147,7 +174,6 @@ struct Hand {
 
 #[derive(Debug)]
 enum PokerHand {
-    None,
     RoyalFlush,
     StraightFlush,
     FourOfAKind,
@@ -157,6 +183,7 @@ enum PokerHand {
     ThreeOfAKind,
     TwoPair,
     OnePair,
+    HighCard,
 }
 
 impl Hand {
@@ -187,8 +214,8 @@ impl Hand {
         }
 
         let mut has_flush = false;
-        for suit in suits.keys() {
-            if *suits.get(suit).expect("failed to get suit!") >= 5 {
+        for (_, amount) in suits {
+            if amount >= 5 {
                 has_flush = true;
                 break;
             }
@@ -197,15 +224,14 @@ impl Hand {
         let mut pairs = 0;
         let mut has_three_of_a_kind = false;
         let mut has_four_of_a_kind = false;
-        for rank in ranks.keys() {
-            let n_rank = *ranks.get(rank).expect("failed to get rank!");
-            if n_rank == 4 {
+        for (_, amount) in ranks {
+            if amount == 4 {
                 has_four_of_a_kind = true;
-            } else if n_rank == 3 {
+            } else if amount == 3 {
                 has_three_of_a_kind = true;
             }
 
-            if n_rank >= 2 {
+            if amount >= 2 {
                 pairs += 1;
             }
         }
@@ -221,7 +247,7 @@ impl Hand {
                     continue;
                 }
 
-                if current_highest.rank.to_i32() - next_card.rank.to_i32() == -1 {
+                if current_highest.rank.as_i32() - next_card.rank.as_i32() == -1 {
                     sequential_cards += 1;
                     current_highest = next_card;
                 } else {
@@ -230,7 +256,7 @@ impl Hand {
             }
         }
 
-        let mut best_hand = PokerHand::None;
+        let mut best_hand = PokerHand::HighCard;
 
         if pairs == 1 {
             println!("This hand has a one pair");
